@@ -1,46 +1,53 @@
+.welcome-modal .modal-content {
+    height: 400px;
+    width: 400px;
+}
+.welcome-modal img {
+    max-width: 80%;
+}
+.welcome-modal button {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    margin: 15px;
+}
 .game {
+    margin-top: 15px;
+}
+.game-panel {
     max-width: 600px;
     display: flex;
     flex-direction: column;
 }
-.action-buttons, .battle-zone {
-    margin-top: 15px;
-}
-.battle-zone table {
-    width: 540px;
-}
-table.battle-grid {
-    height: 200px;
-}
-table.legend {
+
+.battle-grid, .legend {
     margin-bottom: 0px;
 }
 
 th.legend-cell, td.battle-cell {
     padding: 2px;
-    width: 40px;
-    height: 40px;
     color: white;
     vertical-align: middle;
     text-align: center;
+    width: 3em;
 }
+tr > .legend-cell:first-child {
+    width: 3em;
+}
+tr > .legend-cell.top:first-child .badge {
+    visibility: hidden;
+}
+
 .legend-cell.top .badge {
     font-size: 15px;
+    display: block;
 }
+
+.legend-cell.side .badge {
+    width: 30px;
+}
+
 .battle-grid .btn {
     width: 100%;
     height: 100%;
-}
-.label-cell {
-    width: 100px;
-}
-.label-cell .badge {
-    transform: rotate(-90deg);
-    margin-left: -40px;
-    margin-top: 80px;
-    text-align: center;
-}
-
-.player.battle-grid .label-cell .badge {
-    margin-left: -20px;
 }

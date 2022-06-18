@@ -1,6 +1,7 @@
 import React from 'react';
-import { Table, Badge } from 'react-bootstrap';
-import BattleCell from './BattleCell';
+import { useState } from 'react';
+import { Table, Badge, Button, Spinner } from 'react-bootstrap';
+import env from './Environment';
 
 class BattleGrid extends React.Component {
     constructor(props) {
@@ -17,7 +18,7 @@ class BattleGrid extends React.Component {
         return (
             <BattleCell
                 player={this.props.player}
-                cell={cell} 
+                cell={cell}
                 onClick={() => this.clickCell(cell)}
             />
         );
@@ -26,8 +27,6 @@ class BattleGrid extends React.Component {
     render() {
         const { grid, player } = this.props;
         const offset = player ? 6 : 1;
-        const theme = player ? 'info' : 'danger';
-        const label = player ? 'Player' : 'Computer';
 
         const className = 'battle-grid ' + (player ? 'player' : 'computer');
 
@@ -46,7 +45,6 @@ class BattleGrid extends React.Component {
                         <tr key={i}>
                             <td key={0} className='legend-cell side'><Badge bg='dark'>{i + offset}</Badge></td>
                             {row.map((cell, j) => (<td className='battle-cell' key={j + 1}> {this.renderCell(cell)} </td>))}
-                            {i == 0 && <td className='label-cell' key={6} rowSpan={5}><h3><Badge bg={theme}>{label}</Badge></h3></td>}
                         </tr>
                     ))}
                     </tbody>
@@ -54,6 +52,50 @@ class BattleGrid extends React.Component {
             </>
         );
     }
+}
+
+const BattleCell = (props) => {
+    const { cell, player } = props;
+    const disabled = player || cell.isRevealed;
+    const theme = player ? env.Theme1 : env.Theme2;
+
+    const handleClick = () => {
+        cell.busy = true;
+        props.onClick();
+    };
+
+    let variant = `outline-${theme}`;
+
+    let content = <span>&nbsp;&nbsp;</span>;
+    switch (cell.state) {
+        case 'Destroyed':
+            content = 'x';
+            variant = env.Destroyed;
+            break;
+        case 'Damaged':
+            content = 'x';
+            variant = env.Damaged;
+            break;
+        case 'Occupied':
+            variant = theme;
+            break;
+        case 'Empty':
+            if (cell.isRevealed) {
+                content = 'x';
+            }
+            break;
+        default:
+            break;
+    }
+
+    return (
+        <>
+            <Button variant={variant} size='lg' disabled={disabled} onClick={handleClick}>
+                {!cell.busy && content}
+                {cell.busy && <Spinner animation="border" size="sm" />}
+            </Button>{' '}
+        </>
+    );
 }
 
 export default BattleGrid;
