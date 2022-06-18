@@ -5,15 +5,17 @@ namespace Battleship.Domain;
 
 public class PlayerSimulator : IPlayerSimulator
 {
-    public Coordinate SelectAttackSpot(Region region, Slot[] hotSpots)
+    public Coordinate SelectAttackSpot(Region region, Slot[] knownSpots)
     {
-        var damagedSpots = hotSpots.Where(e => e.State == SlotState.Damaged)
+        var damagedCoords = knownSpots.Where(e => e.State == SlotState.Damaged)
             .Select(e => e.Coordinate)
-            .ToList();
+            .ToArray();
 
-        if (damagedSpots.Any())
+        var knownCoords = knownSpots.Select(e => e.Coordinate).ToArray();
+
+        if (damagedCoords.Any())
         {
-            var adjacentSpots = damagedSpots
+            var adjacentCoords = damagedCoords
                 .SelectMany(e =>
                 {
                     return new[]
@@ -26,19 +28,55 @@ public class PlayerSimulator : IPlayerSimulator
                 })
                 .ToList();
 
-            // Remove already damaged ones
-            adjacentSpots.RemoveAll(c => damagedSpots.Contains(c));
+            // Remove already revealed ones
+            adjacentCoords.RemoveAll(c => knownCoords.Contains(c));
 
-            // Remove out-of-boundary
-            adjacentSpots.RemoveAll(c => c.RowIndex < 0 || c.RowIndex >= region.Rows || c.ColIndex < 0 || c.ColIndex >= region.Cols);
+            // Remove out-of-boundary ones
+            adjacentCoords.RemoveAll(c => c.RowIndex < 0 || c.RowIndex >= region.Rows || c.ColIndex < 0 || c.ColIndex >= region.Cols);
 
-            if (adjacentSpots.Any()) 
-                return adjacentSpots.FirstOrDefault();
+            if (adjacentCoords.Any()) 
+                return adjacentCoords.FirstOrDefault();
         }
 
-        var r = Random.Shared.Next(0, region.Rows - 1);
-        var c = Random.Shared.Next(0, region.Cols - 1);
+        var rowIndices = Enumerable.Range(0, region.Rows).ToArray();
+        var colIndices = Enumerable.Range(0, region.Cols).ToArray();
 
-        return new Coordinate(r, c);
+        var rowsUntouched = rowIndices
+            .Except(knownSpots.Select(e => e.Coordinate.RowIndex).Distinct())
+            .ToArray();
+        var colsUntouched = colIndices
+            .Except(knownSpots.Select(e => e.Coordinate.ColIndex).Distinct())
+            .ToArray();
+
+        Coordinate Pick(int[] r, int[] c)
+            => new(Randomizer.FromArray(r), Randomizer.FromArray(c));
+        
+        // If both are available, pick from the mix
+        if (rowsUntouched.Any() && colsUntouched.Any())
+        {
+            return Pick(rowsUntouched, colsUntouched);
+        }
+        // or from any column of untouched rows
+        else if (rowsUntouched.Any())
+        {
+            return Pick(rowsUntouched, colIndices);
+        }
+        // or from any row of untouched columns
+        else if (colsUntouched.Any())
+        {
+            return Pick(rowIndices, colsUntouched);
+        }
+
+        // Best randomization pattern fails, so pick from specific avaiable slots
+        var coords = new List<Coordinate>();
+        for(int i = 0; i < rowIndices.Length; i++)
+            for(int j = 0; j < colIndices.Length; j++)
+                if (!knownCoords.Contains(new(i,j)))
+                    coords.Add(new(i,j));
+
+        if (!coords.Any())
+            throw new InvalidAttackException("No empty slots available");
+
+        return Randomizer.FromList(coords);
     }
 }

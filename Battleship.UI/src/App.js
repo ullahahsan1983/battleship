@@ -9,6 +9,7 @@ import ship from './components/Game/ship-wreck.png';
 
 const App = () => {
     const [show, setShow] = useState(false);
+
     return (
         <Layout>
             <Modal centered show={!show} className='welcome-modal'>
@@ -21,11 +22,8 @@ const App = () => {
                     <Button variant='secondary' onClick={() => setShow(true)}>GO</Button>
                 </Modal.Body>
             </Modal>
-            {show &&
-            <>
-                <About />
-                <Game />
-            </>}
+            <About />
+            <Game show={show} />
         </Layout>
     );
 }

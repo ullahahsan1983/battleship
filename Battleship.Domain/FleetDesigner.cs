@@ -27,7 +27,7 @@ public class FleetDesigner : IFleetDesigner
             var vessel = new Vessel
             {
                 Type = v,
-                IsVertical = Random.Shared.Next(0, 2) == 1,
+                IsVertical = Randomizer.FromRange(0,1) == 1,
                 MaxHealth = (int)v,
                 HealthBar = (int)v,
             };

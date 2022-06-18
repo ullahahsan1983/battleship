@@ -2,7 +2,7 @@ const Environment = {
     Title: 'Battleship',
     Subtitle: 'Hold The Line',
     Api: 'http://localhost:49593',
-    Player: 'Player',
+    Player: 'You',
     Theme1: 'info',
     Opponent: 'Computer',
     Theme2: 'danger',

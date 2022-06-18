@@ -41,7 +41,7 @@ public class GridPlanner : IGridPlanner
         if (!entrySpots.Any()) return Array.Empty<Coordinate>();
 
         // Random pick
-        var entrySpot = entrySpots[Random.Shared.Next(0, entrySpots.Count - 1)];
+        var entrySpot = Randomizer.FromList(entrySpots);
 
         var coordinates = new Coordinate[span];
         for (var k = 0; k < span; k++)

@@ -1,6 +1,5 @@
 import React from 'react';
-import { useState } from 'react';
-import { Table, Badge, Button, Spinner } from 'react-bootstrap';
+import { Table, Badge, Button, Spinner, Alert } from 'react-bootstrap';
 import env from './Environment';
 
 class BattleGrid extends React.Component {
@@ -19,6 +18,7 @@ class BattleGrid extends React.Component {
             <BattleCell
                 player={this.props.player}
                 cell={cell}
+                locked={this.props.locked}
                 onClick={() => this.clickCell(cell)}
             />
         );
@@ -55,8 +55,8 @@ class BattleGrid extends React.Component {
 }
 
 const BattleCell = (props) => {
-    const { cell, player } = props;
-    const disabled = player || cell.isRevealed;
+    const { cell, player, locked } = props;
+    const disabled = player || cell.isRevealed || locked;
     const theme = player ? env.Theme1 : env.Theme2;
 
     const handleClick = () => {

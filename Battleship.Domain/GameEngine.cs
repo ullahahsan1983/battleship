@@ -64,6 +64,7 @@ public class GameEngine : IGameEngine
         }
 
         report.GameState = board.State;
+        report.Winner = board.Winner;
 
         return report;
     }

@@ -22,4 +22,6 @@ public class AttackReport
     public AttackState CounterResult { get; set; }
 
     public GameState? GameState { get; set; }
+
+    public string? Winner { get; set; }
 }
