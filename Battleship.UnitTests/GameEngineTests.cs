@@ -40,31 +40,39 @@ public class GameEngineTests
 
         engine.StartNewGame();
 
-        void AssertAttack(Coordinate coord, SlotState expectedState, AttackState expectedResult)
+        void AssertAttack(Coordinate coord, SlotState expectedSlotState, AttackState expectedAttackState, int? affectedVessel = null)
         {
             var report = engine.LaunchAttackByPlayer(coord);
 
             Assert.NotNull(report);
             Assert.Equal(GameState.Running, board.State);
 
-            Assert.Equal(coord, report.Target.Coordinate);
-            Assert.True(report.Target.IsRevealed);
-            Assert.Equal(expectedState, report.Target.State);
-
-            Assert.Equal(expectedResult, report.Result);
+            Assert.NotNull(report.Result);
+            // are we attacking the correct coordinate?
+            Assert.Equal(coord, report.Result!.Target.Coordinate);
+            // is the spot revealed after attack?
+            Assert.True(report.Result.Target.IsRevealed);
+            // is the target state correctly acquired?
+            Assert.Equal(expectedSlotState, report.Result.Target.State);
+            // is the attack state correctly reported?
+            Assert.Equal(expectedAttackState, report.Result?.State);
+            // is the vessel included in report if hitted?
+            Assert.Equal(affectedVessel, report.Result?.AffectedVessel);
         }
 
         // Attack on empty slot
         AssertAttack(new Coordinate(2, 3), SlotState.Empty, AttackState.Missed);
 
         // Attack on occupied slot
-        AssertAttack(new Coordinate(1, 1), SlotState.Damaged, AttackState.Hit);
+        AssertAttack(new Coordinate(2, 8), SlotState.Damaged, AttackState.Hit, 1);
+        // Attack on another vessel     
+        AssertAttack(new Coordinate(1, 1), SlotState.Damaged, AttackState.Hit, 2);
         // Attack on occupied slot     
-        AssertAttack(new Coordinate(1, 2), SlotState.Damaged, AttackState.Hit);
+        AssertAttack(new Coordinate(1, 2), SlotState.Damaged, AttackState.Hit, 2);
         // Attack on occupied slot     
-        AssertAttack(new Coordinate(1, 3), SlotState.Damaged, AttackState.Hit);
+        AssertAttack(new Coordinate(1, 3), SlotState.Damaged, AttackState.Hit, 2);
         // Attack on final occupied slot     
-        AssertAttack(new Coordinate(1, 4), SlotState.Destroyed, AttackState.Hit);
+        AssertAttack(new Coordinate(1, 4), SlotState.Destroyed, AttackState.Hit, 2);
 
         // Attack on already revealed spot     
         Assert.ThrowsAny<InvalidAttackException>(() => engine.LaunchAttackByPlayer(new Coordinate(2, 3)));
@@ -80,10 +88,11 @@ public class GameEngineTests
         mockBoardProvider.Setup(x => x.CreateNew())
             .Returns(board);
 
-        Vessel CreateVessel(VesselType type, Coordinate[] coordinates)
+        Vessel CreateVessel(int id, VesselType type, Coordinate[] coordinates)
         {
             return new Vessel
             {
+                Id = id,
                 Type = type,
                 HealthBar = (int)type,
                 MaxHealth = (int)type,
@@ -97,9 +106,9 @@ public class GameEngineTests
             Name = "Player",
             Region = new Region(5, 10),
             Vessels = new Vessel[] {
-                CreateVessel(VesselType.Destroyer, new Coordinate[] { new(1,7), new(2,7), new(3,7), new(4,7) }),
-                CreateVessel(VesselType.Battleship, new Coordinate[] { new(1,1), new(1,2), new(1,3), new(1,4), new(1,5) }),
-                CreateVessel(VesselType.Destroyer, new Coordinate[] { new(4,2), new(4,3), new(4,4), new(4,5) }),
+                CreateVessel(1, VesselType.Destroyer, new Coordinate[] { new(1,7), new(2,7), new(3,7), new(4,7) }),
+                CreateVessel(2, VesselType.Battleship, new Coordinate[] { new(1,1), new(1,2), new(1,3), new(1,4), new(1,5) }),
+                CreateVessel(3, VesselType.Destroyer, new Coordinate[] { new(4,2), new(4,3), new(4,4), new(4,5) }),
             }
         };
 
@@ -108,9 +117,9 @@ public class GameEngineTests
             Name = "Computer",
             Region = new Region(5, 10),
             Vessels = new Vessel[] {
-                CreateVessel(VesselType.Battleship, new Coordinate[] { new(0, 8), new(1,8), new(2,8), new(3,8), new(4,8) }),
-                CreateVessel(VesselType.Destroyer, new Coordinate[] { new(1,1), new(1,2), new(1,3), new(1,4) }),
-                CreateVessel(VesselType.Destroyer, new Coordinate[] { new(4,3), new(4,4), new(4,5), new(4,6) }),
+                CreateVessel(1, VesselType.Battleship, new Coordinate[] { new(0, 8), new(1,8), new(2,8), new(3,8), new(4,8) }),
+                CreateVessel(2, VesselType.Destroyer, new Coordinate[] { new(1,1), new(1,2), new(1,3), new(1,4) }),
+                CreateVessel(3, VesselType.Destroyer, new Coordinate[] { new(4,3), new(4,4), new(4,5), new(4,6) }),
             }
         };
 

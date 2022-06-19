@@ -2,6 +2,9 @@
 
 public static class Randomizer
 {
+    public static bool Boolean()
+        => FromRange(0, 1) == 1;
+
     public static int FromRange(int lowerRange, int upperRange)
         => Random.Shared.Next(lowerRange, upperRange + 1);
     

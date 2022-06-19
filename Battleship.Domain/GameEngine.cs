@@ -52,15 +52,16 @@ public class GameEngine : IGameEngine
     {
         var board = Guard();
 
-        var report = new AttackReport();
-
-        (report.Target, report.Result) = LaunchAttack(coordinate, board.Player1, board.Player2);        
+        var report = new AttackReport
+        {
+            Result = LaunchAttack(coordinate, board.Player1, board.Player2)
+        };
 
         // Auto launch computer's turn if Game is yet alive
         if (board.State == GameState.Running)
         {
             var counterReport = LaunchAttackByComputer();
-            (report.CounterTarget, report.CounterResult) = (counterReport.CounterTarget, counterReport.CounterResult);
+            report.CounterResult = counterReport.CounterResult;
         }
 
         report.GameState = board.State;
@@ -77,16 +78,17 @@ public class GameEngine : IGameEngine
             board.Player1.Region,
             board.Grid1.Where(e => e.IsRevealed).ToArray());
 
-        var (counterAttack, counterResult) = LaunchAttack(coordinate, board.Player2, board.Player1);
+        var result = LaunchAttack(coordinate, board.Player2, board.Player1);
 
-        return new AttackReport { CounterTarget = counterAttack, CounterResult = counterResult, GameState = board.State };
+        return new AttackReport { CounterResult = result, GameState = board.State, Winner = board.Winner };
     }
 
-    (Slot Target, AttackState Result) LaunchAttack(Coordinate coordinate, Fleet attacker, Fleet opponent)
+    AttackResult LaunchAttack(Coordinate coordinate, Fleet attacker, Fleet opponent)
     {
         var board = Guard();
+        var isPlayer1 = attacker.Name == board.Player1.Name;
 
-        var targetGrid = attacker.Name == board.Player1.Name ? board.Grid2 : board.Grid1;
+        var targetGrid = isPlayer1 ? board.Grid2 : board.Grid1;
 
         if (coordinate.RowIndex >= opponent.Region.Rows || coordinate.ColIndex >= opponent.Region.Cols)
             throw new InvalidAttackException("Invalid coordinate");
@@ -100,7 +102,6 @@ public class GameEngine : IGameEngine
         // Attack occurred
         targetSlot.IsRevealed = true;
         board.LastAttacker = attacker.Name;
-        board.Explored++;
         board.State = GameState.Running;
 
         var vessel = opponent.FindVessel(coordinate);
@@ -115,7 +116,7 @@ public class GameEngine : IGameEngine
 
             if (opponent.IsDefeated)
             {
-                board.Winner = attacker.Name;
+                board.Winner = isPlayer1 ? 1 : 2;
                 board.State = GameState.Finished;
             }
         }
@@ -128,7 +129,7 @@ public class GameEngine : IGameEngine
 
         targetGrid[slotIndex] = targetSlot;
 
-        return (targetSlot, board.LastAttack);
+        return new(targetSlot, board.LastAttack, vessel?.Id);
     }
 
     public GameReport GetReport()
@@ -176,8 +177,11 @@ public class GameEngine : IGameEngine
         for (int i = 0; i < rowSize; i++)
             for (int j = 0; j < colSize; j++)
             {
-                sequence++;
-                slots[i * colSize + j] = new Slot(sequence, new Coordinate(i, j), false, occupied.Contains(new Coordinate(i, j)) ? SlotState.Occupied : SlotState.Empty);
+                slots[i * colSize + j] = new Slot(
+                    ++sequence, 
+                    new Coordinate(i, j), 
+                    false, 
+                    occupied.Contains(new Coordinate(i, j)) ? SlotState.Occupied : SlotState.Empty);
             }
 
         return slots;

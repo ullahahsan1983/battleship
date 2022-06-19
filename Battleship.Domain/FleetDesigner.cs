@@ -22,12 +22,14 @@ public class FleetDesigner : IFleetDesigner
         var fleet = new Fleet { Name = name, Region = region };
 
         var vessels = new List<Vessel>();
+        int sequence = 0;
         Array.ForEach(vesselTypes, v =>
         {
             var vessel = new Vessel
             {
+                Id = ++sequence,
                 Type = v,
-                IsVertical = Randomizer.FromRange(0,1) == 1,
+                IsVertical = Randomizer.Boolean(),
                 MaxHealth = (int)v,
                 HealthBar = (int)v,
             };
@@ -36,6 +38,7 @@ public class FleetDesigner : IFleetDesigner
                 ? planner.BookVertically(vessel.MaxHealth) 
                 : planner.BookHorizontally(vessel.MaxHealth);
 
+            // if planning fails due to space unavailability, we can't deploy the vessel
             if (vessel.Coordinates == null || vessel.Coordinates.Length < vessel.MaxHealth)
                 throw new InvalidOperationException($"Could not deploy vessel {vessel.Type}");
 

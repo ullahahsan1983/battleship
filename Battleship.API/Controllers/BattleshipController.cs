@@ -8,18 +8,12 @@ namespace Battleship.API.Controllers
     [Route("[controller]")]
     public class BattleshipController : ControllerBase
     {
-        private readonly ILogger<BattleshipController> _logger;
         private readonly IGameEngine _gameEngine;
-        private readonly IGameEnvironment _gameEnvironment;
 
         public BattleshipController(
-            ILogger<BattleshipController> logger,
-            IGameEngine gameEngine,
-            IGameEnvironment gameEnvironment)
+            IGameEngine gameEngine)
         {
-            _logger = logger;
             _gameEngine = gameEngine;
-            _gameEnvironment = gameEnvironment;
         }
 
         [HttpPost("StartNewGame")]
