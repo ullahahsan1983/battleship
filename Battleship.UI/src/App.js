@@ -19,7 +19,7 @@ const App = () => {
                         <h6 className="mx-auto">{env.Subtitle}</h6>
                         <img src={ship} className='mx-auto img-fluid' />
                     </Stack>
-                    <Button variant='secondary' onClick={() => setShow(true)}>GO</Button>
+                    <Button variant='outline-info' onClick={() => setShow(true)}>Play</Button>
                 </Modal.Body>
             </Modal>
             <About />

@@ -1,5 +1,9 @@
 import React, { Component } from 'react';
-import { Container, Row, Col, Table, Button, Badge, Toast, ToastContainer, Modal, Stack } from 'react-bootstrap';
+import {
+    Container, Row, Col, Table,
+    Button, Badge, Toast, ToastContainer,
+    Modal, Stack, Card, ListGroup
+} from 'react-bootstrap';
 import BattleGrid from './BattleGrid';
 import env from './Environment';
 
@@ -23,11 +27,11 @@ export default class Game extends Component {
             grid1: [],
             grid2: [],
             gameState: 'Initiated',
-            player: {},
-            opponent: {},
+            player: { vessels: ['intact','intact','intact'] },
+            opponent: { vessels: ['intact', 'intact', 'intact'] },
             showResult: false,
             showCounter: false,
-            winner: '',
+            victory: null,
             gameOver: false,
             showWinner: false
         };
@@ -43,19 +47,41 @@ export default class Game extends Component {
 
     setShowWinner = (show) => this.setState({ showWinner: show });
 
+    renderStats(isOpponent) {
+        const getState = (vessel) => vessel === 'destroyed' ? 'danger' : (vessel === 'damaged' ? 'warning' : 'success');
+        const theme = isOpponent ? env.Theme2 : env.Theme1;
+        const label = isOpponent ? env.Opponent : env.Player;
+        const vessels = isOpponent ? this.state.opponent.vessels : this.state.player.vessels;
+
+        const stats = vessels.map((item, i) => {
+            return (<ListGroup.Item key={i}>Vessel{i + 1} <Badge bg={getState(item)}>{item}</Badge></ListGroup.Item>);
+        });
+
+        return (
+            <Card border={theme} bg={theme} text='light'>
+                <Card.Header>{label}</Card.Header>
+                <ListGroup variant="flush">
+                    { stats }
+                </ListGroup>
+            </Card>
+        );
+    }
+
     render() {
-        const { grid1, grid2, player, opponent } = this.state;
+        const { grid1, grid2, player, opponent, victory } = this.state;
+
+        const winnerWindowClass = `ms-auto ${victory ? 'text-success' : 'text-danger'}`;
 
         const legends = this.heads.map((item,i) => {
-            return (<th key={i+1} className='legend-cell top'><Badge bg="dark">{item}</Badge></th>)
+            return (<th key={i + 1} className='legend-cell top'><Badge bg="dark">{item}</Badge></th>);
         });
 
         return (
             <>
                 {this.state.started && this.props.show &&
-                    <Container fluid>
-                        <Row className='game'>
-                            <Col lg={8} className='game-panel'>
+                    <Container fluid className='game'>
+                        <Row className='game-panel'>
+                            <Col>
                                 <div className='battle-zone'>
                                     <Row>
                                         <Col>
@@ -80,8 +106,20 @@ export default class Game extends Component {
                                     </Row>
                                 </div>
                             </Col>
-                            <Col lg={4} className='side-panel'>
-                                <Button variant="dark" onClick={() => this.startNewGame()}>{this.state.gameOver ? 'Start New Game' : 'Start Over'}</Button>{' '}
+                        </Row>
+                        <Row className='info-panel'>
+                            <Col sm={1}></Col>
+                            <Col sm={4}>
+                                {this.renderStats(false)}
+                            </Col>
+                            <Col sm={3}>
+                                <Stack direction="vertical" gap={2}>
+                                    <Button className='mx-auto' variant="outline-dark" onClick={() => this.startNewGame()}>{this.state.gameOver ? 'Start New Game' : 'Start Over'}</Button>{' '}
+                                    {this.state.gameOver && <Button className='mx-auto' variant="outline-dark" onClick={() => this.setShowWinner(true)}>Result</Button>}
+                                </Stack>
+                            </Col>
+                            <Col sm={4}>
+                                {this.renderStats(true)}
                             </Col>
                         </Row>
 
@@ -103,12 +141,14 @@ export default class Game extends Component {
                     </Container>
                 }
                 <Modal centered show={this.state.showWinner} className='winner-modal' onHide={() => this.setShowWinner(false)} >
-                    <Modal.Header closeButton>Winner</Modal.Header>
+                    <Modal.Header closeButton>
+                        <Modal.Title className={winnerWindowClass}>{ this.state.victory ? 'Victory!!' : 'Defeat' }</Modal.Title>
+                    </Modal.Header>
                     <Modal.Body>
-                        <Stack direction="vertical" className="mx-auto">
-                            <h1 className="mx-auto">{this.state.winner} Won</h1>
+                        <Stack direction="vertical" gap={3} className="mx-auto">
+                            <h1 className="mx-auto">{ this.state.victory ? env.Player : env.Opponent } Won</h1>
+                            <Button className='ms-auto' variant='outline-secondary' onClick={() => this.startNewGame()}>Play Again</Button>
                         </Stack>
-                        <Button variant='secondary' onClick={() => this.startNewGame()}>Play Again</Button>
                     </Modal.Body>
                 </Modal>
             </>
@@ -122,7 +162,7 @@ export default class Game extends Component {
 
     checkGameOver(report) {
         if (report.winner) {
-            this.setState({ winner: report.winner, gameOver: true, showWinner: true });
+            this.setState({ victory: report.winner === 1, gameOver: true, showWinner: true });
             return true;
         }
         return false;
@@ -131,7 +171,11 @@ export default class Game extends Component {
     async startNewGame() {
         this.setState(this.initialState());
 
-        await this.requestNewGame()
+        const response = await fetch(`${env.Api}/Battleship/StartNewGame`, {
+            method: 'POST'
+        });
+
+        await response.json()
             .then(gameReport => {
                 this.setState({
                     loading: false,
@@ -140,13 +184,6 @@ export default class Game extends Component {
                     started: true
                 });
             });        
-    }
-
-    async requestNewGame() {
-        const response = await fetch(`${env.Api}/Battleship/StartNewGame`, {
-            method: 'POST'
-        });
-        return response.json();
     }
 
     async launchAttack(coord) {
@@ -162,37 +199,50 @@ export default class Game extends Component {
         });
         const report = await response.json();
 
-        const { target, counterTarget } = report;
-        const { grid1, grid2 } = this.state;
+        const { grid1, grid2, player, opponent } = this.state;
+        const { result, counterResult } = report;
 
-        var attack = grid2[target.id - 1];
-        var counter = grid1[counterTarget.id - 1];
+        const target = result.target;
+        const counterTarget = counterResult && counterResult.target;
 
-        attack.isRevealed = target.isRevealed;
-        attack.state = target.state;
-        attack.busy = false;
+        var targetCell = grid2[target.id - 1];
+        targetCell.isRevealed = target.isRevealed;
+        targetCell.state = target.state;
+        targetCell.busy = false;
+
+        player.lastMove = this.getPlacement(targetCell.coordinate);
+        player.lastResult = result.state;
+        if (result.affectedVessel) {
+            opponent.vessels[result.affectedVessel - 1] = targetCell.state.toLowerCase();
+        }
 
         this.setState({
             gameState: report.gameState,
-            player: { lastMove: this.getPlacement(target.coordinate), lastResult: report.result },
             showResult: true
         });
 
-        if (this.checkGameOver(report)) return;
+        if (counterTarget) {
+            var counterCell = grid1[counterTarget.id - 1];
+            counterCell.busy = true;
 
-        counter.busy = true;
-        // a bit delay to emulate counter warfare :):)
-        await timeout(2000);
+            // a bit delay to emulate counter warfare :):)
+            await timeout(2000);
 
-        counter.isRevealed = counterTarget.isRevealed;
-        counter.state = counterTarget.state;
-        counter.busy = false;
+            counterCell.isRevealed = counterTarget.isRevealed;
+            counterCell.state = counterTarget.state;
+            counterCell.busy = false;
 
-        this.setState({
-            opponent: { lastMove: this.getPlacement(counterTarget.coordinate), lastResult: report.counterResult },
-            showCounter: true,
-            loading: false
-        });
+            opponent.lastMove = this.getPlacement(counterCell.coordinate);
+            opponent.lastResult = counterResult.state;
+            if (counterResult.affectedVessel) {
+                player.vessels[counterResult.affectedVessel - 1] = counterCell.state.toLowerCase();
+            }
+
+            this.setState({
+                showCounter: true,
+                loading: false
+            });
+        }
 
         this.checkGameOver(report);
     }
